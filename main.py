@@ -9,7 +9,7 @@ class MyApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Image comparator v0.1")
+        self.setWindowTitle("Image comparator")
         self.setMinimumSize(800, 600)
         self.app_gui = AppGui(self)
 
