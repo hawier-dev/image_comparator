@@ -2,6 +2,8 @@
 
 The Image Comparison Tool is a simple application that enables you to compare two images side by side. This tool allows you to scroll through images in both horizontal and vertical directions and zoom in to closely examine the details of each image.
 
+![screenshot.jpg](screenshot.jpg)
+
 ## Features
 
 - **Image Comparison:** View and compare two images simultaneously.
