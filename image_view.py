@@ -71,6 +71,7 @@ class ImageView(QGraphicsView):
         # temporary block signals from scroll bars to prevent interference
         horz_blocked = self.horizontalScrollBar().blockSignals(True)
         vert_blocked = self.verticalScrollBar().blockSignals(True)
+
         self._zoom = zoom
         self.setTransform(transform)
         dx = horz_scroll - self.horizontalScrollBar().value()
