@@ -16,7 +16,7 @@ The Image Comparison Tool is a simple application that enables you to compare tw
 Make sure you have the following prerequisites installed:
 
 - Python 3.x
-- PyQt5 (Python library for creating GUI applications)
+- PySide6
 
 ### Installation
 
