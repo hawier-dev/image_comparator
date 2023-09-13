@@ -77,7 +77,7 @@ class AppGui(QVBoxLayout):
         self.images_widget.setLayout(image_layout)
 
         self.status_bar = QStatusBar()
-        self.version = QLabel("Image Comparer v0.1")
+        self.version = QLabel("Image Comparer v0.2")
         self.resolution_status = QLabel("None")
         self.status_bar.addWidget(self.version)
         self.status_bar.addWidget(self.resolution_status)

@@ -10,7 +10,7 @@ class MyApp(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Image comparator")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(600, 400)
         self.app_gui = AppGui(self)
 
         central_widget = QWidget()
