@@ -61,6 +61,7 @@ class ImageView(QGraphicsView):
         pixmap = QPixmap.fromImageReader(image_reader)
         if pixmap.width() == 0:
             QMessageBox.critical(self, 'Error', 'Unable to load the image.', QMessageBox.Ok)
+            return
 
         if self.scene().items():
             self.scene().removeItem(self.scene().items()[0])
