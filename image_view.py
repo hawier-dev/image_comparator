@@ -24,6 +24,7 @@ class ImageView(QGraphicsView):
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.zoom_factor = 0
+        self.original_image = None
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -64,6 +65,7 @@ class ImageView(QGraphicsView):
         if self.scene().items():
             self.scene().removeItem(self.scene().items()[0])
 
+        self.original_image = pixmap
         self.scene().addPixmap(pixmap)
         self.photoAdded.emit(pixmap.width(), pixmap.height())
 

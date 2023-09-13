@@ -110,16 +110,12 @@ class AppGui(QVBoxLayout):
         resolution = resolution.split("x")
         if self.image_view1.scene().items():
             self.image_view1.scene().items()[0].setPixmap(
-                self.image_view1.scene()
-                .items()[0]
-                .pixmap()
+                self.image_view1.original_image
                 .scaled(int(resolution[0]), int(resolution[1]))
             )
         if self.image_view2.scene().items():
             self.image_view2.scene().items()[0].setPixmap(
-                self.image_view2.scene()
-                .items()[0]
-                .pixmap()
+                self.image_view2.original_image
                 .scaled(int(resolution[0]), int(resolution[1]))
             )
         self.image_view1.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
