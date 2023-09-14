@@ -1,8 +1,8 @@
 from functools import partial
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QSlider, QSplitter, QComboBox, QLabel, QPushButton, \
-    QApplication, QWidget, QGridLayout, QFileDialog, QStatusBar
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QPushButton, \
+    QWidget, QFileDialog, QStatusBar, QMessageBox
 
 from image_view import ImageView
 
@@ -11,6 +11,8 @@ class AppGui(QVBoxLayout):
     def __init__(self, parent=None):
         super(AppGui, self).__init__(parent)
         self.main_window = parent
+
+        self.image_views = []
 
         # Bottom bar
         self.top_settings_layout = QHBoxLayout()
@@ -32,37 +34,27 @@ class AppGui(QVBoxLayout):
         # Images comparison
         self.images_widget = QWidget()
 
-        image_layout = QHBoxLayout()
-        image_layout.setSpacing(0)
+        self.image_views_layout = QHBoxLayout()
+        self.image_views_layout.setSpacing(0)
 
-        # Save screenshot with comparison
-        self.image_view1 = ImageView()
-        self.image_view1.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.image_view1.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.image_view1.horizontalScrollBar().valueChanged.connect(
-            partial(self.slider_sync, "horizontal", "image1")
-        )
-        self.image_view1.verticalScrollBar().valueChanged.connect(
-            partial(self.slider_sync, "vertical", "image1")
-        )
-        self.image_view1.photoAdded.connect(self.add_resolution)
+        self.add_image_view()
+        self.add_image_view()
 
-        self.image_view2 = ImageView()
-        self.image_view2.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.image_view2.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.image_view2.horizontalScrollBar().valueChanged.connect(
-            partial(self.slider_sync, "horizontal", "image2")
-        )
-        self.image_view2.verticalScrollBar().valueChanged.connect(
-            partial(self.slider_sync, "vertical", "image2")
-        )
-        self.image_view2.photoAdded.connect(self.add_resolution)
+        # Layout with remove and add button
+        self.add_remove_image_layout = QHBoxLayout()
+        self.remove_button = QPushButton()
+        self.remove_button.setText("-")
+        self.remove_button.setFixedSize(30, 30)
+        self.remove_button.pressed.connect(self.remove_image_view)
+        self.add_button = QPushButton()
+        self.add_button.setText("+")
+        self.add_button.setFixedSize(30, 30)
+        self.add_button.pressed.connect(self.add_image_view)
 
-        image_layout.addWidget(self.image_view1)
-        image_layout.addWidget(self.image_view2)
-
-        self.image_view1.tranformChanged.connect(self.image_view2.set_transform)
-        self.image_view2.tranformChanged.connect(self.image_view1.set_transform)
+        self.add_remove_image_layout.addStretch()
+        self.add_remove_image_layout.addWidget(self.remove_button)
+        self.add_remove_image_layout.addWidget(self.add_button)
+        self.add_remove_image_layout.addStretch()
 
         # Bottom bar
         self.bottom_settings_layout = QHBoxLayout()
@@ -74,10 +66,10 @@ class AppGui(QVBoxLayout):
 
         self.bottom_settings_layout.addWidget(self.save_comparison_button)
 
-        self.images_widget.setLayout(image_layout)
+        self.images_widget.setLayout(self.image_views_layout)
 
         self.status_bar = QStatusBar()
-        self.version = QLabel("Image Comparer v0.2")
+        self.version = QLabel("Image Comparer v0.3")
         self.resolution_status = QLabel("None")
         self.status_bar.addWidget(self.version)
         self.status_bar.addWidget(self.resolution_status)
@@ -86,42 +78,85 @@ class AppGui(QVBoxLayout):
 
         self.addLayout(self.top_settings_layout)
         self.addWidget(self.images_widget)
+        self.addLayout(self.add_remove_image_layout)
         self.addLayout(self.bottom_settings_layout)
+
+    def add_image_view(self):
+        image_view = ImageView()
+        image_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        image_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        image_view.horizontalScrollBar().valueChanged.connect(
+            partial(self.slider_sync, "horizontal")
+        )
+        image_view.verticalScrollBar().valueChanged.connect(
+            partial(self.slider_sync, "vertical")
+        )
+        image_view.photoAdded.connect(self.add_resolution)
+        image_view.tranformChanged.connect(self.set_transform)
+        image_view.multipleUrls.connect(self.load_multiple_images)
+
+        self.image_views_layout.addWidget(image_view)
+        self.image_views.append(image_view)
+
+    def load_multiple_images(self, urls):
+        dialog = QMessageBox()
+        dialog.setWindowTitle('Multiple files')
+        dialog.setText("Do you want to load multiple files?")
+        dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        result = dialog.exec_()
+        urls = urls
+
+        if result == QMessageBox.Yes:
+            missing_count = (len(urls) - len(self.image_views)) + len([item for item in self.image_views if item.original_image])
+            for i in range(missing_count):
+                self.add_image_view()
+
+            for item in self.image_views:
+                if not item.original_image:
+                    item.loadImage(urls[0].toLocalFile())
+                    urls.remove(urls[0])
+
+                self.image_views_layout.removeWidget(item)
+
+            for item in self.image_views:
+                self.image_views_layout.addWidget(item)
+
+        elif result == QMessageBox.No:
+            return
+
+    def remove_image_view(self):
+        if len(self.image_views) > 2:
+            self.image_views_layout.removeWidget(self.image_views[-1])
+            self.image_views[-1].deleteLater()
+            self.image_views.remove(self.image_views[-1])
+
+    def set_transform(self, *args):
+        for item in self.image_views:
+            item.set_transform(*args)
 
     def slider_sync(
         self,
         orientation,
-        image_view,
         value,
     ):
-        if image_view == "image1":
+        for item in self.image_views:
             if orientation == "horizontal":
-                self.image_view2.horizontalScrollBar().setValue(value)
+                item.horizontalScrollBar().setValue(value)
             else:
-                self.image_view2.verticalScrollBar().setValue(value)
-
-        else:
-            if orientation == "horizontal":
-                self.image_view1.horizontalScrollBar().setValue(value)
-            else:
-                self.image_view1.verticalScrollBar().setValue(value)
+                item.verticalScrollBar().setValue(value)
 
     def set_resolution(self, resolution):
         resolution = resolution.split("x")
-        if self.image_view1.scene().items():
-            self.image_view1.scene().items()[0].setPixmap(
-                self.image_view1.original_image
-                .scaled(int(resolution[0]), int(resolution[1]))
-            )
-        if self.image_view2.scene().items():
-            self.image_view2.scene().items()[0].setPixmap(
-                self.image_view2.original_image
-                .scaled(int(resolution[0]), int(resolution[1]))
-            )
-        self.image_view1.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
-        self.image_view2.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
-        self.resolution_status.setText("x".join(resolution))
-        self.resolution_status.setStyleSheet("color: lime")
+        for item in self.image_views:
+            if item.scene().items():
+                item.scene().items()[0].setPixmap(
+                    item.original_image
+                    .scaled(int(resolution[0]), int(resolution[1]))
+                )
+            item.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
+            item.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
+            self.resolution_status.setText("x".join(resolution))
+            self.resolution_status.setStyleSheet("color: lime")
 
     def add_resolution(self, width, height):
         resolution = f"{width}x{height}"

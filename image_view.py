@@ -11,7 +11,8 @@ from PySide6.QtCore import Signal
 
 
 class ImageView(QGraphicsView):
-    tranformChanged = Signal(int, int, QTransform, int)
+    tranformChanged = Signal(QTransform)
+    multipleUrls = Signal(list)
     photoAdded = Signal(int, int)
 
     def __init__(self):
@@ -28,14 +29,19 @@ class ImageView(QGraphicsView):
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
-        if mime_data.hasUrls() and len(mime_data.urls()) == 1:
+        if mime_data.hasUrls():
             event.acceptProposedAction()
 
     def dropEvent(self, event: QDropEvent):
         mime_data = event.mimeData()
-        if mime_data.hasUrls() and len(mime_data.urls()) == 1:
+        if mime_data.hasUrls():
             file_path = mime_data.urls()[0].toLocalFile()
-            self.loadImage(file_path)
+            if len(mime_data.urls()) > 1:
+                self.multipleUrls.emit(
+                    mime_data.urls()
+                )
+            else:
+                self.loadImage(file_path)
 
     def dragMoveEvent(self, event):
         event.accept()
@@ -50,10 +56,7 @@ class ImageView(QGraphicsView):
         self.scale(zoom_factor, zoom_factor)
 
         self.tranformChanged.emit(
-            self.horizontalScrollBar().value(),
-            self.verticalScrollBar().value(),
             self.transform(),
-            self.zoom_factor,
         )
 
     def loadImage(self, file_path):
@@ -70,16 +73,10 @@ class ImageView(QGraphicsView):
         self.scene().addPixmap(pixmap)
         self.photoAdded.emit(pixmap.width(), pixmap.height())
 
-    def set_transform(self, horz_scroll, vert_scroll, transform, zoom):
-        # temporary block signals from scroll bars to prevent interference
+    def set_transform(self, transform):
         horz_blocked = self.horizontalScrollBar().blockSignals(True)
         vert_blocked = self.verticalScrollBar().blockSignals(True)
 
-        self._zoom = zoom
         self.setTransform(transform)
-        dx = horz_scroll - self.horizontalScrollBar().value()
-        dy = vert_scroll - self.verticalScrollBar().value()
-        self.horizontalScrollBar().setValue(dx)
-        self.verticalScrollBar().setValue(dy)
         self.horizontalScrollBar().blockSignals(horz_blocked)
         self.verticalScrollBar().blockSignals(vert_blocked)
