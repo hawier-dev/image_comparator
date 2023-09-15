@@ -26,6 +26,7 @@ class ImageView(QGraphicsView):
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.zoom_factor = 0
         self.original_image = None
+        self.url = None
 
     def dragEnterEvent(self, event: QDragEnterEvent):
         mime_data = event.mimeData()
@@ -37,9 +38,7 @@ class ImageView(QGraphicsView):
         if mime_data.hasUrls():
             file_path = mime_data.urls()[0].toLocalFile()
             if len(mime_data.urls()) > 1:
-                self.multipleUrls.emit(
-                    mime_data.urls()
-                )
+                self.multipleUrls.emit(mime_data.urls())
             else:
                 self.loadImage(file_path)
 
@@ -63,7 +62,9 @@ class ImageView(QGraphicsView):
         image_reader = QImageReader(file_path)
         pixmap = QPixmap.fromImageReader(image_reader)
         if pixmap.width() == 0:
-            QMessageBox.critical(self, 'Error', 'Unable to load the image.', QMessageBox.Ok)
+            QMessageBox.critical(
+                self, "Error", "Unable to load the image.", QMessageBox.Ok
+            )
             return
 
         if self.scene().items():
@@ -72,6 +73,7 @@ class ImageView(QGraphicsView):
         self.original_image = pixmap
         self.scene().addPixmap(pixmap)
         self.photoAdded.emit(pixmap.width(), pixmap.height())
+        self.url = file_path
 
     def set_transform(self, transform):
         horz_blocked = self.horizontalScrollBar().blockSignals(True)

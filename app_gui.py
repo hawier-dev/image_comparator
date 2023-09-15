@@ -1,9 +1,19 @@
 from functools import partial
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QComboBox, QLabel, QPushButton, \
-    QWidget, QFileDialog, QStatusBar, QMessageBox
+from PySide6.QtWidgets import (
+    QVBoxLayout,
+    QHBoxLayout,
+    QComboBox,
+    QLabel,
+    QPushButton,
+    QWidget,
+    QFileDialog,
+    QStatusBar,
+    QMessageBox,
+)
 
+from graphics_view import GraphicsView
 from image_view import ImageView
 
 
@@ -82,57 +92,53 @@ class AppGui(QVBoxLayout):
         self.addLayout(self.bottom_settings_layout)
 
     def add_image_view(self):
-        image_view = ImageView()
-        image_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        image_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        image_view.horizontalScrollBar().valueChanged.connect(
+        graphics_view = GraphicsView()
+        graphics_view.image_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        graphics_view.image_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        graphics_view.image_view.horizontalScrollBar().valueChanged.connect(
             partial(self.slider_sync, "horizontal")
         )
-        image_view.verticalScrollBar().valueChanged.connect(
+        graphics_view.image_view.verticalScrollBar().valueChanged.connect(
             partial(self.slider_sync, "vertical")
         )
-        image_view.photoAdded.connect(self.add_resolution)
-        image_view.tranformChanged.connect(self.set_transform)
-        image_view.multipleUrls.connect(self.load_multiple_images)
+        graphics_view.image_view.photoAdded.connect(self.add_resolution)
+        graphics_view.image_view.tranformChanged.connect(self.set_transform)
+        graphics_view.image_view.multipleUrls.connect(self.load_multiple_images)
 
-        self.image_views_layout.addWidget(image_view)
-        self.image_views.append(image_view)
+        self.image_views_layout.addLayout(graphics_view)
+        self.image_views.append(graphics_view)
 
     def load_multiple_images(self, urls):
         dialog = QMessageBox()
-        dialog.setWindowTitle('Multiple files')
+        dialog.setWindowTitle("Multiple files")
         dialog.setText("Do you want to load multiple files?")
         dialog.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = dialog.exec_()
         urls = urls
 
         if result == QMessageBox.Yes:
-            missing_count = (len(urls) - len(self.image_views)) + len([item for item in self.image_views if item.original_image])
-            for i in range(missing_count):
-                self.add_image_view()
-
             for item in self.image_views:
-                if not item.original_image:
-                    item.loadImage(urls[0].toLocalFile())
+                if not item.image_view.url:
+                    item.image_view.url = urls[0]
                     urls.remove(urls[0])
 
-                self.image_views_layout.removeWidget(item)
-
             for item in self.image_views:
-                self.image_views_layout.addWidget(item)
+                item.image_view.loadImage(item.image_view.url.toLocalFile())
 
         elif result == QMessageBox.No:
             return
 
     def remove_image_view(self):
         if len(self.image_views) > 2:
-            self.image_views_layout.removeWidget(self.image_views[-1])
+            self.image_views_layout.removeItem(self.image_views[-1])
             self.image_views[-1].deleteLater()
+            self.image_views[-1].image_view.deleteLater()
+            self.image_views[-1].text_view.deleteLater()
             self.image_views.remove(self.image_views[-1])
 
     def set_transform(self, *args):
         for item in self.image_views:
-            item.set_transform(*args)
+            item.image_view.set_transform(*args)
 
     def slider_sync(
         self,
@@ -141,20 +147,21 @@ class AppGui(QVBoxLayout):
     ):
         for item in self.image_views:
             if orientation == "horizontal":
-                item.horizontalScrollBar().setValue(value)
+                item.image_view.horizontalScrollBar().setValue(value)
             else:
-                item.verticalScrollBar().setValue(value)
+                item.image_view.verticalScrollBar().setValue(value)
 
     def set_resolution(self, resolution):
         resolution = resolution.split("x")
         for item in self.image_views:
-            if item.scene().items():
-                item.scene().items()[0].setPixmap(
-                    item.original_image
-                    .scaled(int(resolution[0]), int(resolution[1]))
+            if item.image_view.scene().items():
+                item.image_view.scene().items()[0].setPixmap(
+                    item.image_view.original_image.scaled(
+                        int(resolution[0]), int(resolution[1])
+                    )
                 )
-            item.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
-            item.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
+            item.image_view.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
+            item.image_view.setSceneRect(0, 0, int(resolution[0]), int(resolution[1]))
             self.resolution_status.setText("x".join(resolution))
             self.resolution_status.setStyleSheet("color: lime")
 
@@ -173,9 +180,11 @@ class AppGui(QVBoxLayout):
         file_dialog = QFileDialog()
         file_dialog.setNameFilter("JPEG Image Files (*.jpg)")
 
-        file_path, _ = file_dialog.getSaveFileName(None, "Save Comparison Screenshot", "", "JPEG Image Files (*.jpg)")
+        file_path, _ = file_dialog.getSaveFileName(
+            None, "Save Comparison Screenshot", "", "JPEG Image Files (*.jpg)"
+        )
 
         if file_path:
             screenshot = self.images_widget.grab()
-            screenshot.save(file_path, 'jpg')
-            print(f'Saved screenshot as {file_path}')
+            screenshot.save(file_path, "jpg")
+            print(f"Saved screenshot as {file_path}")
