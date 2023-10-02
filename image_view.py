@@ -1,3 +1,5 @@
+from PIL import Image
+from PIL.ImageQt import ImageQt
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene, QMessageBox, QTextEdit
 from PySide6.QtGui import (
     QImageReader,
@@ -9,6 +11,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtCore import Signal
 
+Image.MAX_IMAGE_PIXELS = 933120000
 
 class ImageView(QGraphicsView):
     tranformChanged = Signal(QTransform)
@@ -59,8 +62,9 @@ class ImageView(QGraphicsView):
         )
 
     def loadImage(self, file_path):
-        image_reader = QImageReader(file_path)
-        pixmap = QPixmap.fromImageReader(image_reader)
+        img = Image.open(file_path)
+        img = ImageQt(img)
+        pixmap = QPixmap.fromImage(img)
         if pixmap.width() == 0:
             QMessageBox.critical(
                 self, "Error", "Unable to load the image.", QMessageBox.Ok
