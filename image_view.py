@@ -9,7 +9,7 @@ from PySide6.QtGui import (
     QPainter,
     QTransform,
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 
 Image.MAX_IMAGE_PIXELS = 933120000
 
@@ -22,8 +22,8 @@ class ImageView(QGraphicsView):
         super().__init__()
         self.setScene(QGraphicsScene(self))
         self.setAcceptDrops(True)
-        self.setRenderHint(QPainter.Antialiasing)
-        self.setRenderHint(QPainter.SmoothPixmapTransform)
+        self.setRenderHint(QPainter.Antialiasing, True)
+        self.setRenderHint(QPainter.SmoothPixmapTransform, True)
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.ScrollHandDrag)
@@ -75,7 +75,8 @@ class ImageView(QGraphicsView):
             self.scene().removeItem(self.scene().items()[0])
 
         self.original_image = pixmap
-        self.scene().addPixmap(pixmap)
+        pixmap_item = self.scene().addPixmap(pixmap)
+        pixmap_item.setTransformationMode(Qt.SmoothTransformation)
         self.photoAdded.emit(pixmap.width(), pixmap.height())
         self.url = file_path
 
@@ -86,3 +87,19 @@ class ImageView(QGraphicsView):
         self.setTransform(transform)
         self.horizontalScrollBar().blockSignals(horz_blocked)
         self.verticalScrollBar().blockSignals(vert_blocked)
+
+    def set_antialiasing(self, enabled: bool):
+        self.setRenderHint(QPainter.Antialiasing, enabled)
+        self.setRenderHint(QPainter.SmoothPixmapTransform, enabled)
+        # Przeładuj obraz jeśli już jest
+        if self.original_image:
+            self.reload_pixmap()
+
+    def reload_pixmap(self):
+        # Ustaw ponownie pixmapę z odpowiednią interpolacją jeśli potrzeba
+        if self.scene().items() and self.original_image:
+            item = self.scene().items()[0]
+            item.setPixmap(self.original_image)
+            # Ustaw tryb transformacji zgodnie z aktualnym ustawieniem antyaliasingu
+            mode = Qt.SmoothTransformation if self.renderHints() & QPainter.SmoothPixmapTransform else Qt.FastTransformation
+            item.setTransformationMode(mode)
