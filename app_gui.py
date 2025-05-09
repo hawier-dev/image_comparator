@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QStatusBar,
     QMessageBox,
+    QCheckBox,
 )
 
 from graphics_view import GraphicsView
@@ -38,6 +39,12 @@ class AppGui(QVBoxLayout):
 
         self.resolution_layout.addWidget(self.resolution_label)
         self.resolution_layout.addWidget(self.resolution_combo)
+
+        # DODAJ CHECKBOX ANTYALIASING
+        self.antialiasing_checkbox = QCheckBox("Antyaliasing")
+        self.antialiasing_checkbox.setChecked(True)
+        self.antialiasing_checkbox.stateChanged.connect(self.toggle_antialiasing)
+        self.resolution_layout.addWidget(self.antialiasing_checkbox)
 
         self.top_settings_layout.addLayout(self.resolution_layout)
 
@@ -175,6 +182,11 @@ class AppGui(QVBoxLayout):
 
         if self.resolution_combo.currentText():
             self.set_resolution(self.resolution_combo.currentText())
+
+    def toggle_antialiasing(self, state):
+        enabled = state == 2  # Qt.Checked
+        for item in self.image_views:
+            item.image_view.set_antialiasing(enabled)
 
     def save_comparison(self):
         file_dialog = QFileDialog()
